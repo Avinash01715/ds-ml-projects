@@ -1,4 +1,4 @@
-# SMS Spam Classifier
+# Spam SMS Detector
 
 A machine learning project that classifies SMS messages as **spam** or **ham** (legitimate) using TF-IDF features and Logistic Regression.
 
