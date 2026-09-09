@@ -1,6 +1,6 @@
 # 📩 Spam SMS Detector
 
-A machine learning project that classifies SMS messages as **spam** or **ham** (legitimate) using TF-IDF features and Multinomial Naive Bayes, with a ready-to-use Streamlit web app for inference.
+A machine learning project that classifies SMS messages as **spam** or **ham** (legitimate) using TF-IDF features and **Multinomial Naive Bayes**, with a ready-to-use Streamlit web app for real-time inference.
 
 This project follows a complete classification pipeline — data cleaning, exploratory analysis, text preprocessing, model benchmarking, ensemble experiments, final model selection, and deployment.
 
@@ -8,28 +8,21 @@ This project follows a complete classification pipeline — data cleaning, explo
 
 ## 📌 Problem Statement
 
-SMS spam is a common nuisance and potential security risk. The goal of this project is to build a binary classifier that can automatically detect spam messages from text content alone, using the classic SMS Spam Collection dataset, and package it into a simple interactive web application.
+SMS spam is a common nuisance and potential security risk.  
+The goal of this project is to build a binary classifier that can automatically detect spam messages from text content alone (using the classic SMS Spam Collection dataset) and package it into a simple interactive web application.
 
 ---
 
 ## 📁 Dataset
 
-| Detail                    | Value                                              |
-| ------------------------- | -------------------------------------------------- |
-| Source                    | SMS Spam Collection (UCI / Kaggle)                 |
-| File                      | `spam_data.csv` (latin-1 encoding)                 |
-| Total records             | 5,572                                              |
-| After removing duplicates | ~5,169                                             |
-| Missing values            | None                                               |
-| Target variable           | `v1` → renamed to `label` (`ham` / `spam`) → 0/1   |
-
-### Features
-
-| Feature    | Description                                       |
-| ---------- | ------------------------------------------------- |
-| label      | Class label: `ham` (legitimate) or `spam`         |
-| message    | Raw SMS text content                              |
-| label_num  | Binary encoding of label (0 = ham, 1 = spam)      |
+| Detail                    | Value                                      |
+| ------------------------- | ------------------------------------------ |
+| Source                    | SMS Spam Collection (UCI / Kaggle)         |
+| File                      | `spam_data.csv` (latin-1 encoding)         |
+| Total records             | 5,572                                      |
+| After removing duplicates | ~5,169                                     |
+| Missing values            | None                                       |
+| Target variable           | `label` / `target` (`ham` / `spam`) → 0/1  |
 
 **Class distribution (after deduplication):** Heavily imbalanced — majority of messages are `ham`.
 
@@ -59,32 +52,32 @@ SMS spam is a common nuisance and potential security risk. The goal of this proj
 
 3. **Data Cleaning**  
    - Dropped unused columns (`Unnamed: 2/3/4`)  
-   - Renamed columns to `label` and `message`  
+   - Renamed columns appropriately  
    - Checked for missing values (none)  
    - Removed duplicate rows  
 
 4. **Text Preprocessing**  
+   Pipeline applied to every message:
    - Lowercasing  
-   - Tokenization (NLTK `word_tokenize`)  
-   - Removal of non-alphanumeric tokens  
-   - Stopword removal (English)  
+   - Tokenization (`nltk.word_tokenize`)  
+   - Keep only alphanumeric tokens  
+   - Remove English stopwords and punctuation  
    - Porter stemming  
 
 5. **Feature Engineering**  
-   - TF-IDF vectorization on the cleaned text  
+   - TF-IDF vectorization (`TfidfVectorizer(max_features=3000)`) on the transformed text  
 
 6. **Model Building & Benchmarking**  
-   - Stratified train-test split  
-   - Multiple algorithms evaluated (including MultinomialNB, SVM, Extra Trees, etc.)  
+   Multiple algorithms were trained and compared (SVC, KNeighbors, MultinomialNB, Decision Tree, Logistic Regression, Random Forest, AdaBoost, Bagging, Extra Trees, Gradient Boosting, XGBoost).
 
 7. **Model Improvement & Ensembles**  
-   - Soft Voting Classifier (SVM + MultinomialNB + Extra Trees)  
+   - Soft Voting Classifier (SVC + MultinomialNB + Extra Trees)  
    - Stacking Classifier (same base models + Random Forest meta-learner)  
 
 8. **Final Model Selection & Deployment**  
-   - Selected **Multinomial Naive Bayes** for its excellent balance of precision, accuracy, and efficiency  
+   - Selected **Multinomial Naive Bayes** for its excellent balance of high precision, good accuracy, and computational efficiency  
    - Saved vectorizer + model with joblib  
-   - Built a Streamlit web app for real-time predictions  
+   - Built a Streamlit web app (`app.py`) for real-time predictions  
 
 ---
 
@@ -92,31 +85,35 @@ SMS spam is a common nuisance and potential security risk. The goal of this proj
 
 ### Final Model — MultinomialNB
 
-| Metric            | Score  |
-| ----------------- | ------ |
-| Accuracy          | 0.9710 |
-| Precision (spam)  | 1.0000 |
+| Metric           | Score  |
+| ---------------- | ------ |
+| Accuracy         | 0.9710 |
+| Precision (spam) | 1.0000 |
 
-The model achieves perfect precision on the spam class in the held-out test set while maintaining high overall accuracy. This makes it particularly suitable for scenarios where false positives (flagging legitimate messages as spam) are highly undesirable.
+The model achieves **perfect precision** on the spam class on the held-out test set while maintaining high overall accuracy. This is desirable when false positives (flagging legitimate messages as spam) are costly.
 
-### Ensemble Comparison (for reference)
+### Other Notable Results (for reference)
 
 | Model                        | Accuracy | Precision |
 | ---------------------------- | -------- | --------- |
-| Voting Classifier (soft)     | 0.9807   | 0.9836    |
+| BernoulliNB                  | 0.9836   | 0.9919    |
+| Extra Trees                  | 0.9778   | 0.9675    |
+| Random Forest                | 0.9768   | 0.9750    |
+| SVC                          | 0.9758   | 0.9748    |
+| **Voting Classifier (soft)** | **0.9807** | **0.9836** |
 | Stacking Classifier          | 0.9787   | 0.9394    |
 | **MultinomialNB (final)**    | **0.9710** | **1.0000** |
 
-Although the voting ensemble slightly edges out in accuracy, MultinomialNB was chosen as the production model due to its perfect precision, simplicity, speed, and lower resource requirements.
+Although some ensembles and BernoulliNB scored higher accuracy, **MultinomialNB** was chosen as the production model because of its perfect precision, simplicity, speed, and lower resource requirements.
 
 ---
 
 ## ⚠️ Limitations
 
 - Class imbalance is present; no oversampling, undersampling, or class-weight tuning was applied in the final model.
-- The model relies on classical bag-of-words (TF-IDF) features. More advanced approaches (character n-grams, word embeddings, or transformers) can further improve robustness.
-- Trained on a relatively clean public SMS dataset — may not fully generalize to modern multi-channel spam, short-form social media messages, or adversarial text.
-- No extensive hyperparameter search or cross-validation results are reported for the final selected model beyond the held-out test set.
+- Relies on classical bag-of-words (TF-IDF) features. Character n-grams, embeddings, or transformers can improve robustness further.
+- Trained on a relatively clean public SMS dataset — may not fully generalize to modern multi-channel spam or adversarial text.
+- No extensive hyperparameter search or cross-validation is reported beyond the single stratified train-test split used for final evaluation.
 
 ---
 
@@ -128,7 +125,7 @@ Although the voting ensemble slightly edges out in accuracy, MultinomialNB was c
 pip install -r requirements.txt
 ```
 
-`requirements.txt` contents:
+Contents of `requirements.txt`:
 
 ```
 streamlit==1.41.1
@@ -143,11 +140,11 @@ nltk==3.9.1
 streamlit run app.py
 ```
 
-The app will open in your browser. Paste any SMS message and click **Classify** to get a spam/ham prediction along with confidence score.
+The app opens in the browser. Paste any SMS message and click **Classify** to receive a spam/ham prediction with confidence score. An expander also shows the preprocessed text for debugging.
 
-### 3. Notebook (for training / exploration)
+### 3. Notebook (training & exploration)
 
-Open `SpamClassifier.ipynb` in Jupyter / Colab / VS Code and run the cells sequentially. The notebook contains the full pipeline from data loading to model saving.
+Open `SpamClassifier.ipynb` in Jupyter / Google Colab / VS Code and run all cells. It contains the full pipeline from data loading to model saving.
 
 ---
 
@@ -157,7 +154,7 @@ Open `SpamClassifier.ipynb` in Jupyter / Colab / VS Code and run the cells seque
 .
 ├── app.py                 # Streamlit web application
 ├── model.joblib           # Trained MultinomialNB model
-├── vectorizer.joblib      # Fitted TF-IDF vectorizer
+├── vectorizer.joblib      # Fitted TF-IDF vectorizer (max_features=3000)
 ├── SpamClassifier.ipynb   # Full training & analysis notebook
 ├── requirements.txt       # Python dependencies
 ├── .gitignore
@@ -172,7 +169,7 @@ Open `SpamClassifier.ipynb` in Jupyter / Colab / VS Code and run the cells seque
 - Experiment with character n-grams and richer text features
 - Perform systematic cross-validation and hyperparameter tuning
 - Evaluate on more recent or domain-specific spam datasets
-- Add confidence calibration and threshold tuning UI in the Streamlit app
+- Add confidence calibration / threshold tuning controls in the Streamlit app
 - Containerize the app (Docker) for easier deployment
 
 ---
@@ -181,8 +178,8 @@ Open `SpamClassifier.ipynb` in Jupyter / Colab / VS Code and run the cells seque
 
 This project delivers a complete, end-to-end SMS spam detection system:
 
-- A carefully preprocessed TF-IDF + Multinomial Naive Bayes classifier that achieves **~97.1% accuracy** and **perfect spam precision** on the test set.
-- A clean Streamlit interface that lets anyone paste a message and receive an instant prediction.
+- A carefully preprocessed **TF-IDF + Multinomial Naive Bayes** classifier that achieves **~97.1% accuracy** and **perfect spam precision** on the test set.
+- A clean Streamlit interface that lets anyone paste a message and receive an instant prediction with confidence.
 
 The chosen model prioritizes high precision (very few false alarms on legitimate messages) while remaining lightweight and fast — a practical trade-off for a spam filter.
 
