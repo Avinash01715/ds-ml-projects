@@ -1,38 +1,35 @@
-# Spam SMS Detector
+# 📩 Spam SMS Detector
 
-A machine learning project that classifies SMS messages as **spam** or **ham** (legitimate) using TF-IDF features and Logistic Regression.
+A machine learning project that classifies SMS messages as **spam** or **ham** (legitimate) using TF-IDF features and Multinomial Naive Bayes, with a ready-to-use Streamlit web app for inference.
 
-This project follows a classic classification pipeline — exploratory analysis, cleaning & preprocessing, feature engineering, model training, evaluation, and threshold analysis.
+This project follows a complete classification pipeline — data cleaning, exploratory analysis, text preprocessing, model benchmarking, ensemble experiments, final model selection, and deployment.
 
 ---
 
 ## 📌 Problem Statement
 
-SMS spam is a common nuisance and potential security risk.  
-The goal of this project is to build a binary classifier that can automatically detect spam messages from text content alone, using the classic SMS Spam Collection dataset.
-
-**Note:** The current model is a **baseline Logistic Regression** model with TF-IDF features. It achieves strong overall accuracy but still shows a noticeable trade-off between precision and recall for the minority (spam) class (see Limitations section).
+SMS spam is a common nuisance and potential security risk. The goal of this project is to build a binary classifier that can automatically detect spam messages from text content alone, using the classic SMS Spam Collection dataset, and package it into a simple interactive web application.
 
 ---
 
 ## 📁 Dataset
 
-| Detail                    | Value                                      |
-|---------------------------|--------------------------------------------|
-| Source                    | SMS Spam Collection (UCI / Kaggle)         |
-| File                      | `spam.csv`                                 |
-| Total records             | 5,572                                      |
-| After removing duplicates | 5,169                                      |
-| Missing values            | None                                       |
-| Target variable           | `label` (`ham` / `spam`) → encoded as 0/1  |
+| Detail                    | Value                                              |
+| ------------------------- | -------------------------------------------------- |
+| Source                    | SMS Spam Collection (UCI / Kaggle)                 |
+| File                      | `spam_data.csv` (latin-1 encoding)                 |
+| Total records             | 5,572                                              |
+| After removing duplicates | ~5,169                                             |
+| Missing values            | None                                               |
+| Target variable           | `v1` → renamed to `label` (`ham` / `spam`) → 0/1   |
 
 ### Features
-| Feature     | Description                                      |
-|-------------|--------------------------------------------------|
-| label       | Class label: `ham` (legitimate) or `spam`        |
-| message     | Raw SMS text content                             |
-| label_num   | Binary encoding of label (0 = ham, 1 = spam)     |
-| msg_length  | Character length of the message (engineered)     |
+
+| Feature    | Description                                       |
+| ---------- | ------------------------------------------------- |
+| label      | Class label: `ham` (legitimate) or `spam`         |
+| message    | Raw SMS text content                              |
+| label_num  | Binary encoding of label (0 = ham, 1 = spam)      |
 
 **Class distribution (after deduplication):** Heavily imbalanced — majority of messages are `ham`.
 
@@ -43,103 +40,114 @@ The goal of this project is to build a binary classifier that can automatically 
 - **Python**
 - **Pandas** & **NumPy** – data handling
 - **Matplotlib** & **Seaborn** – visualization
-- **Scikit-learn** – TF-IDF vectorization, Logistic Regression, metrics
+- **NLTK** – tokenization, stopwords, stemming
+- **Scikit-learn** – TF-IDF vectorization, MultinomialNB, ensembles, metrics
+- **Joblib** – model & vectorizer serialization
+- **Streamlit** – interactive web app for predictions
 
 ---
 
 ## 🔄 Project Workflow
 
 1. **Data Loading & Inspection**  
-   Loaded `spam.csv` (latin-1 encoding), inspected shape, columns, and sample messages.
+   Loaded `spam_data.csv` (latin-1 encoding), inspected shape, columns, and sample messages.
 
 2. **Exploratory Data Analysis (EDA)**  
-   - Class distribution (`value_counts`)  
-   - Message length statistics (mean ≈ 80 characters, max 910)  
-   - Basic length comparison between ham and spam  
+   - Class distribution  
+   - Message length statistics  
+   - Word clouds / most frequent terms for ham vs spam  
 
 3. **Data Cleaning**  
    - Dropped unused columns (`Unnamed: 2/3/4`)  
    - Renamed columns to `label` and `message`  
    - Checked for missing values (none)  
-   - Removed 403 duplicate rows  
+   - Removed duplicate rows  
 
-4. **Feature Engineering**  
-   - Encoded target: `label_num = 1` if spam else `0`  
-   - Created `msg_length` feature  
-   - Applied **TF-IDF** vectorization (`max_features=3000`, English stop-words) on the message text  
+4. **Text Preprocessing**  
+   - Lowercasing  
+   - Tokenization (NLTK `word_tokenize`)  
+   - Removal of non-alphanumeric tokens  
+   - Stopword removal (English)  
+   - Porter stemming  
 
-5. **Model Building**  
-   - Stratified train-test split → 80% train / 20% test (`random_state=42`)  
-   - Algorithm → **Logistic Regression** (`max_iter=1000`)  
-   - Target → `label_num`  
+5. **Feature Engineering**  
+   - TF-IDF vectorization on the cleaned text  
 
-6. **Evaluation & Threshold Analysis**  
-   - Default threshold (0.5) metrics  
-   - Threshold sweep (0.3, 0.5, 0.7, 0.9) examining Precision / Recall / FP / FN trade-offs  
-   - Manual inspection of false positives and false negatives  
+6. **Model Building & Benchmarking**  
+   - Stratified train-test split  
+   - Multiple algorithms evaluated (including MultinomialNB, SVM, Extra Trees, etc.)  
+
+7. **Model Improvement & Ensembles**  
+   - Soft Voting Classifier (SVM + MultinomialNB + Extra Trees)  
+   - Stacking Classifier (same base models + Random Forest meta-learner)  
+
+8. **Final Model Selection & Deployment**  
+   - Selected **Multinomial Naive Bayes** for its excellent balance of precision, accuracy, and efficiency  
+   - Saved vectorizer + model with joblib  
+   - Built a Streamlit web app for real-time predictions  
 
 ---
 
 ## 📊 Results
 
-### Default Threshold (0.5)
+### Final Model — MultinomialNB
 
-| Metric              | Score   |
-|---------------------|---------|
-| Accuracy            | 0.961   |
-| Spam Precision      | 0.989   |
-| Spam Recall         | 0.702   |
-| Spam F1-Score       | 0.82    |
+| Metric            | Score  |
+| ----------------- | ------ |
+| Accuracy          | 0.9710 |
+| Precision (spam)  | 1.0000 |
 
-**Confusion Matrix (test set, n=1034):**
-```
-[[902   1]   ← Ham correctly classified / False Positives
- [ 39  92]]  ← False Negatives / Spam correctly classified
-```
+The model achieves perfect precision on the spam class in the held-out test set while maintaining high overall accuracy. This makes it particularly suitable for scenarios where false positives (flagging legitimate messages as spam) are highly undesirable.
 
-### Threshold Sweep Summary
+### Ensemble Comparison (for reference)
 
-| Threshold | Precision | Recall | False Positives | False Negatives |
-|-----------|-----------|--------|-----------------|-----------------|
-| 0.3       | 0.949     | 0.847  | 6               | 20              |
-| 0.5       | 0.989     | 0.702  | 1               | 39              |
-| 0.7       | 1.000     | 0.435  | 0               | 74              |
-| 0.9       | 1.000     | 0.084  | 0               | 120             |
+| Model                        | Accuracy | Precision |
+| ---------------------------- | -------- | --------- |
+| Voting Classifier (soft)     | 0.9807   | 0.9836    |
+| Stacking Classifier          | 0.9787   | 0.9394    |
+| **MultinomialNB (final)**    | **0.9710** | **1.0000** |
 
-**Interpretation:**  
-At the default threshold the model is highly precise (very few legitimate messages flagged as spam) but misses ~30% of actual spam. Lowering the threshold improves recall at the cost of a few extra false positives.
+Although the voting ensemble slightly edges out in accuracy, MultinomialNB was chosen as the production model due to its perfect precision, simplicity, speed, and lower resource requirements.
 
 ---
 
-## ⚠️ Limitations (Why it is not perfect)
+## ⚠️ Limitations
 
-- Only Logistic Regression + basic TF-IDF was used. More advanced approaches (n-grams, character-level features, transformers, or ensemble methods) usually perform better.
-- Class imbalance is present; no oversampling, undersampling, or class-weight tuning was applied.
-- No cross-validation or hyperparameter search was performed.
-- Message length was engineered but not combined with TF-IDF in the final model.
-- Residual / error analysis is limited to a handful of misclassified examples.
-- The model is trained on a relatively clean, public SMS dataset and may not generalize well to modern multi-channel spam or adversarial text.
+- Class imbalance is present; no oversampling, undersampling, or class-weight tuning was applied in the final model.
+- The model relies on classical bag-of-words (TF-IDF) features. More advanced approaches (character n-grams, word embeddings, or transformers) can further improve robustness.
+- Trained on a relatively clean public SMS dataset — may not fully generalize to modern multi-channel spam, short-form social media messages, or adversarial text.
+- No extensive hyperparameter search or cross-validation results are reported for the final selected model beyond the held-out test set.
 
 ---
 
 ## 🚀 How to Run
 
-### Requirements
+### 1. Install dependencies
+
 ```bash
-pandas
-numpy
-matplotlib
-seaborn
-scikit-learn
+pip install -r requirements.txt
 ```
 
-### Steps
-1. Keep the dataset file in the same folder as the notebook:
-   ```
-   spam.csv
-   ```
-2. Open `SpamClassifier.ipynb` in Jupyter Notebook / Google Colab / VS Code.
-3. Run all cells from top to bottom.
+`requirements.txt` contents:
+
+```
+streamlit==1.41.1
+scikit-learn
+joblib==1.4.2
+nltk==3.9.1
+```
+
+### 2. Run the Streamlit app
+
+```bash
+streamlit run app.py
+```
+
+The app will open in your browser. Paste any SMS message and click **Classify** to get a spam/ham prediction along with confidence score.
+
+### 3. Notebook (for training / exploration)
+
+Open `SpamClassifier.ipynb` in Jupyter / Colab / VS Code and run the cells sequentially. The notebook contains the full pipeline from data loading to model saving.
 
 ---
 
@@ -147,32 +155,36 @@ scikit-learn
 
 ```
 .
-├── spam.csv                          #-----> Raw dataset
-├── SpamClassifier.ipynb              #-----> Main notebook
-└── README.md                         #-----> Project documentation
+├── app.py                 # Streamlit web application
+├── model.joblib           # Trained MultinomialNB model
+├── vectorizer.joblib      # Fitted TF-IDF vectorizer
+├── SpamClassifier.ipynb   # Full training & analysis notebook
+├── requirements.txt       # Python dependencies
+├── .gitignore
+└── README.md              # This file
 ```
 
 ---
 
 ## 🔮 Future Improvements
 
-- Experiment with class weights, SMOTE, or focal loss to handle imbalance
-- Try multinomial Naive Bayes, Random Forest, or Gradient Boosting
-- Add character n-grams or more sophisticated text features
-- Perform proper cross-validation and hyperparameter tuning
+- Add class-weight handling, SMOTE, or focal loss to better address imbalance
+- Experiment with character n-grams and richer text features
+- Perform systematic cross-validation and hyperparameter tuning
 - Evaluate on more recent or domain-specific spam datasets
-- **Deploy the model** as a simple web app (Streamlit / Flask / FastAPI) so users can paste an SMS and get an instant spam/ham prediction — **deployment is planned for a later stage**
+- Add confidence calibration and threshold tuning UI in the Streamlit app
+- Containerize the app (Docker) for easier deployment
 
 ---
 
 ## 📝 Conclusion
 
-This project successfully builds a complete text classification pipeline for SMS spam detection.  
-The Logistic Regression + TF-IDF baseline achieves **~96% accuracy** and excellent precision, making it a solid starting point.  
+This project delivers a complete, end-to-end SMS spam detection system:
 
-However, the model is **not production-ready**. Significant gains in recall (and overall robustness) are possible with better imbalance handling, richer features, and stronger algorithms.  
+- A carefully preprocessed TF-IDF + Multinomial Naive Bayes classifier that achieves **~97.1% accuracy** and **perfect spam precision** on the test set.
+- A clean Streamlit interface that lets anyone paste a message and receive an instant prediction.
 
-**Deployment will be done later** once the model is further improved and packaged.
+The chosen model prioritizes high precision (very few false alarms on legitimate messages) while remaining lightweight and fast — a practical trade-off for a spam filter.
 
 ---
 
